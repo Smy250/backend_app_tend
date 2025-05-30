@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/Smy250/backend_app_tend/apis"
 	"github.com/Smy250/backend_app_tend/config"
@@ -12,12 +14,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func POST_Consult(c *gin.Context) {
+func POST_Consult(ctx *gin.Context) {
 	db := config.DB
+	usr, _ := ctx.Get("user")
+	usr_string := fmt.Sprint(usr)
+	usr_ID, _ := strconv.ParseUint(usr_string, 0, 64)
+
+	fmt.Println(usr_ID)
 
 	var jsonData map[string]interface{}
-	if err := c.BindJSON(&jsonData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := ctx.BindJSON(&jsonData); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -29,14 +36,17 @@ func POST_Consult(c *gin.Context) {
 	response, err_2 = apis.ConsultGemini(os.Getenv("GEMINI_API_KEY"), consult)
 
 	if err_2 != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Modelo de Inteligencia Artificial no Encontrado."})
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Modelo de Inteligencia Artificial no Encontrado."})
 		return
 	}
 
-	if err_3 := db.Create(&models.Consultas_AI{Consult: consult, Request: response.Text()}).Error; err_3 != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Error al insertar el usuario"})
+	// Con respecto al dato usrID al ser de tipo any o cualquiera(generico)
+	// Con la aserción podemos transformar un dato any a cualquiera
+	// con .(tipo de dato)
+	if err_3 := db.Create(&models.Consultas_AI{User_ID: usr_ID, Consult: consult, Request: response.Text()}).Error; err_3 != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al insertar el usuario"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"Request": response.Text()})
+	ctx.JSON(http.StatusOK, gin.H{"Request": response.Text()})
 }

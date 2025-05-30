@@ -25,5 +25,5 @@ func Load_DB() {
 
 func Check_Migration() {
 	Load_DB()
-	DB.AutoMigrate(&models.Consultas_AI{})
+	DB.AutoMigrate(&models.User{}, &models.Consultas_AI{})
 }

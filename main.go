@@ -19,6 +19,8 @@ func main() {
 
 	var gin_Router *gin.Engine = gin.Default()
 	routes.Route_Gemini(gin_Router)
+	routes.Route_Middleware(gin_Router)
+	routes.User_Routes(gin_Router)
 
 	gin_Router.Run("localhost:8081")
 }
@@ -26,9 +28,11 @@ func main() {
 /*
 	Cosas por Implementar:
 	* 1. Login-Registro y Autenticar (Creación y Registro de Usuarios).
+	[LISTO]
 	* 2. Protección de rutas para evitar el acceso a información sensible.
+	[En Progreso]
 	* 3. Arreglar la request o respuesta del json para evitar los "\n"
-	en las respuestas.
+	en las respuestas. [En Progreso]
 	* 4. Modelar En Base A lo Que se Quiere del Proyecto
 	* 5. Posiblemente al escalar, organizar aún mejor. Apegandose mas al
 	proyecto, la estructura de los directorios del proyecto.
