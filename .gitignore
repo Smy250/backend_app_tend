@@ -1,3 +1,5 @@
 *.env
 *.sqlite
 *.sqlite3
+*.exe
+*example_test

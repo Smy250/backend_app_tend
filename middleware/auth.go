@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -35,10 +36,13 @@ func UserAuthentication(ctx *gin.Context) {
 		}
 
 		var usr = models.User{}
-		db_conn := config.DB
+		db_conn, err_3 := config.DB_Instance()
+		if err_3 != nil {
+			panic("Error al conectar la base de datos")
+		}
 
 		//Encontramos el id del usuario con el atributo "usr" del token.
-		db_conn.First(&usr, claims["usr"])
+		db_conn.WithContext(context.Background()).First(&usr, claims["usr"])
 
 		if usr.ID == 0 {
 			ctx.AbortWithStatus(http.StatusInternalServerError)
@@ -46,6 +50,7 @@ func UserAuthentication(ctx *gin.Context) {
 
 		//Adjuntamos al contexto.
 		ctx.Set("user", usr.ID)
+		ctx.Set("username", usr.Username)
 
 	} else {
 		ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"Acceso no Autorizado": "X"})

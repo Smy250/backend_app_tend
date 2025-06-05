@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/Smy250/backend_app_tend/apis"
 	"github.com/Smy250/backend_app_tend/config"
@@ -15,14 +16,28 @@ import (
 )
 
 func POST_Consult(ctx *gin.Context) {
-	db := config.DB
-	usr, _ := ctx.Get("user")
-	usr_string := fmt.Sprint(usr)
-	usr_ID, _ := strconv.ParseUint(usr_string, 0, 64)
 
-	fmt.Println(usr_ID)
+	//Obtenemos el id y username desde el middleware.
+	var usr_username = ""
+	var usr_ID uint64
 
-	var jsonData map[string]interface{}
+	if userID, ok := ctx.Get("user"); ok {
+		if idUint, ok := userID.(uint64); ok {
+			usr_ID = idUint
+		} else {
+			// Si el tipo de dato no es uint64
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al procesar la consulta."})
+			return
+		}
+	}
+
+	if username, ok := ctx.Get("username"); ok {
+		usr_username = username.(string)
+	}
+	// Refactorizar
+
+	// Obtenemos los datos de la respuesta del usuario recibido.
+	var jsonData map[string]any
 	if err := ctx.BindJSON(&jsonData); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -30,23 +45,36 @@ func POST_Consult(ctx *gin.Context) {
 
 	// Obtener un atributo específico
 	consult := jsonData["Consulta"].(string)
+	nrConsult := jsonData["ConsultUID"].(string)
+	nrConsultInt, _ := strconv.ParseUint(nrConsult, 10, 64)
+
+	consult = fmt.Sprintf("`%s` (Consulta del Usuario:%s)", consult, usr_username)
 
 	var response *genai.GenerateContentResponse
-	var err_2 error
-	response, err_2 = apis.ConsultGemini(os.Getenv("GEMINI_API_KEY"), consult)
+	var err2 error
 
-	if err_2 != nil {
+	response, err2 = apis.ConsultGemini(os.Getenv("GEMINI_API_KEY"), consult, usr_ID, nrConsultInt)
+
+	if err2 != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Modelo de Inteligencia Artificial no Encontrado."})
+		return
+	}
+
+	db, err4 := config.DB_Instance()
+	if err4 != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": err4.Error()})
 		return
 	}
 
 	// Con respecto al dato usrID al ser de tipo any o cualquiera(generico)
 	// Con la aserción podemos transformar un dato any a cualquiera
 	// con .(tipo de dato)
-	if err_3 := db.Create(&models.Consultas_AI{User_ID: usr_ID, Consult: consult, Request: response.Text()}).Error; err_3 != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al insertar el usuario"})
+	if err4 = db.Create(&models.Consultas_AI{User_ID: usr_ID, Consult: consult, ConsultUID: nrConsultInt, Request: response.Text()}).Error; err4 != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al procesar la consulta"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"Request": response.Text()})
+	var test string = strings.ReplaceAll(response.Text(), "\n", " ")
+
+	ctx.JSON(http.StatusOK, gin.H{"Request": test})
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/Smy250/backend_app_tend/config"
 	"github.com/Smy250/backend_app_tend/routes"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,11 +19,15 @@ func main() {
 	init_background()
 
 	var gin_Router *gin.Engine = gin.Default()
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://google.com"}
+	gin_Router.Use(cors.New(config))
+
 	routes.Route_Gemini(gin_Router)
 	routes.Route_Middleware(gin_Router)
 	routes.User_Routes(gin_Router)
 
-	gin_Router.Run("localhost:8081")
+	gin_Router.Run("0.0.0.0:8081")
 }
 
 /*
