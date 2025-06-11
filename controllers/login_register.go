@@ -57,17 +57,17 @@ func LoginUser(ctx *gin.Context) {
 	// Estas variables de modelo user, 1 sera usada para ser bindeadas
 	// directametne del formulario y la 2 para bindear la info de la bd
 
+	// Instanciamos la base de datos.
+	db, err1 := config.DB_Instance()
+	if err1 != nil {
+		panic("Error al conectar la base de datos")
+	}
+
 	// Verificamos el correo enviado del JSON
 	ctx.BindJSON(&userForm)
 	if userForm.Email == "" {
 		ctx.JSON(http.StatusBadRequest, gin.H{"Error": "Campos faltantes"})
 		return
-	}
-
-	// Instanciamos la base de datos.
-	db, err1 := config.DB_Instance()
-	if err1 != nil {
-		panic("Error al conectar la base de datos")
 	}
 
 	// Verificacion #1: Verificamos en la BD si el correo Existe.

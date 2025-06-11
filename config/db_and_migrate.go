@@ -15,7 +15,10 @@ func DB_Instance() (*gorm.DB, error) {
 		db_location = "./db/test.sqlite3"
 	}
 
-	db, err := gorm.Open(sqlite.Open(db_location), &gorm.Config{})
+	var db *gorm.DB
+	var err error
+
+	db, err = gorm.Open(sqlite.Open(db_location), &gorm.Config{})
 	if err != nil {
 		return nil, errors.New("db error: no se pudo conectar correctamente con la base de de datos")
 	}
