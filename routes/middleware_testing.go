@@ -7,6 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Lo siguiente engloba todas las rutas que usará el servidor HTTP.
+// Esta ruta es mas que todo el testeo del middleware de autenticación
 func Route_Middleware(router_Group *gin.Engine) {
 	middleware_route := router_Group.Group("/")
 	{

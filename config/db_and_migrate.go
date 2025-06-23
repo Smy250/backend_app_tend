@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// Instancia de la la base de datos, para evitar llamarla globalmente
+// y que ocurran casos raros.
 func DB_Instance() (*gorm.DB, error) {
 	var db_location = os.Getenv("DB_LOCATION")
 	if db_location == "" {
@@ -26,6 +28,7 @@ func DB_Instance() (*gorm.DB, error) {
 	return db, err
 }
 
+// Chequeo y migración de la base de datos.
 func Check_Migration() {
 	db, err := DB_Instance()
 	if err != nil {

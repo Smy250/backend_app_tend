@@ -10,8 +10,9 @@ import (
 )
 
 func ConsultGemini(gemini_key string, consult string,
-	user_id uint64, nConsult uint64, model uint64) (*genai.GenerateContentResponse, error) {
+	user_id uint64, nConsult uint64, model uint64, precision uint64) (*genai.GenerateContentResponse, error) {
 
+	// Solo existen tres modelos.
 	if model > 3 {
 		return nil, errors.New("error en el modelo: Solo puede elegir tres modelos, [3 - Avanzado, 2 - Intermedio, 1 - Basico]")
 	}
@@ -39,18 +40,28 @@ func ConsultGemini(gemini_key string, consult string,
 	// La siguiente variable se refiere a los parametros de generación
 	// de contenido. en ellos esta temperatura, maximos de token por resp.
 	//var config *genai.GenerateContentConfig = temperatureParameter(0, 0, 0, 0)
-	chat, err_2 := client.Chats.Create(context.Background(), ai_Models[model], &genai.GenerateContentConfig{ResponseMIMEType: "application/json"}, nil)
+
+	// Obtenemos la configuración de la precision de acuerdo a un numero
+	// especificado por el usuario.
+	precisionM := precisionModel(precision)
+
+	// Creamos el chat con el modelo y precisión previamente obtenidos.
+	chat, err_2 := client.Chats.Create(context.Background(), ai_Models[model], precisionM, nil)
 	if err_2 != nil {
 		return nil, err_2
 	}
 
+	// Obtenemos de la bd al menos por ahora 2 mensajes previos para
+	// el contexto de la conversación.
 	history, err_3 := getRecentMessage(user_id, int(nConsult), 2)
 	if err_3 != nil {
 		return nil, err_3
 	}
 
+	// Anexamos al array history la consulta
 	history = append(history, genai.Part{Text: consult})
 
+	// Se envia la información previa.
 	resp, _ := chat.SendMessage(context.Background(), history...)
 
 	return resp, nil
@@ -79,6 +90,53 @@ func getRecentMessage(user uint64, nConsult, limit int) ([]genai.Part, error) {
 	}
 
 	return history, nil
+}
+
+func precisionModel(precisionlvl uint64) *genai.GenerateContentConfig {
+	var contentConfig *genai.GenerateContentConfig
+	var temp, topP, topK float32
+	maxOutputTokens := int32(65536)
+
+	switch precisionlvl {
+	// Explicativo
+	case 1:
+		temp = 0.79
+		topP = 0.95
+		contentConfig = &genai.GenerateContentConfig{
+			Temperature:     &temp,
+			TopP:            &topP,
+			MaxOutputTokens: maxOutputTokens,
+		}
+	// Investigativo
+	case 2:
+		temp = 0.01
+		topK = 0.01
+		contentConfig = &genai.GenerateContentConfig{
+			Temperature:     &temp,
+			TopK:            &topK,
+			MaxOutputTokens: maxOutputTokens,
+		}
+	// Ejemplos
+	case 3:
+		temp = 0.1
+		topK = 0.01
+		contentConfig = &genai.GenerateContentConfig{
+			Temperature:     &temp,
+			TopP:            &topP,
+			MaxOutputTokens: maxOutputTokens,
+		}
+	// General
+	case 4:
+		temp = 0.7
+		topP = 0.95
+		contentConfig = &genai.GenerateContentConfig{
+			Temperature:     &temp,
+			TopP:            &topP,
+			MaxOutputTokens: maxOutputTokens,
+		}
+	}
+
+	return contentConfig
 }
 
 /*

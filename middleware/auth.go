@@ -32,6 +32,8 @@ func UserAuthentication(ctx *gin.Context) {
 		return
 	}
 
+	// Lo siguiente se refiere a verificar los datos del token previamente
+	// desencriptado.
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		//Se verifica que el token aún no se haya expirado.
 		if float64(time.Now().Unix()) > claims["exp"].(float64) {
@@ -39,7 +41,6 @@ func UserAuthentication(ctx *gin.Context) {
 			ctx.Abort()
 			return
 		}
-
 		var usr = models.User{}
 		db_conn, err_3 := config.DB_Instance()
 		if err_3 != nil {
@@ -48,7 +49,9 @@ func UserAuthentication(ctx *gin.Context) {
 			return
 		}
 
-		//Encontramos el id del usuario con el atributo "usr" del token.
+		// Encontramos el id del usuario con el atributo "usr" del token.
+		// Con el metodo withcontext, nos aseguramos concurrentemente
+		// la operacion de la consulta.
 		db_conn.WithContext(context.Background()).First(&usr, claims["usr"])
 
 		if usr.ID == 0 {
@@ -57,7 +60,8 @@ func UserAuthentication(ctx *gin.Context) {
 			return
 		}
 
-		//Adjuntamos al contexto.
+		// Adjuntamos al contexto del GIN ID y nombre de usuario, para ser
+		// usado luego en la función a la cual requiere este middleware.
 		ctx.Set("user", usr.ID)
 		ctx.Set("username", usr.Username)
 
@@ -66,7 +70,7 @@ func UserAuthentication(ctx *gin.Context) {
 		ctx.Abort()
 		return
 	}
-
+	// Con el metodo Next pasamos a la función pendiente, la cual necesita esta implementación para verficar que realmente el usuario esta autenticado
 	ctx.Next()
 }
 
@@ -77,6 +81,10 @@ func UserVerifyLogging(ctx *gin.Context) {
 
 	token, _ = scripts.DecryptToken(tokenString)
 
+	// Lo siguiente se resume en que si el token del usuario previamente
+	// desncriptado, no es nulo se procederá a verificar en la base de
+	// datos el id. De ser un token nulo se procederá a loguearse y si no
+	// le indicara que ya se encuentra logueado.
 	if token != nil {
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
 
@@ -103,6 +111,7 @@ func UserVerifyLogging(ctx *gin.Context) {
 }
 
 func UserVerifyLogout(ctx *gin.Context) {
+	// Obtenemos en un string, el apartado autohrization de la cookie.
 	tokenString, _ := ctx.Cookie("Authorization")
 
 	if tokenString != "" {
@@ -111,4 +120,7 @@ func UserVerifyLogout(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"Error": "Usted no tiene sesión activa."})
 		return
 	}
+	// Lo anterior se resume en que si hay informacion en el campo cookie
+	// de autorización se procederá a cerrar sesion. De lo contrario se
+	// indicara que el usuario no tiene una sesión activa.
 }

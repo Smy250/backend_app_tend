@@ -33,11 +33,10 @@ func POST_Consult(ctx *gin.Context) {
 
 	var usr_ID uint64 = scripts.FindUserID(ctx, db)
 	if usr_ID == 0 {
-		// Si el tipo de dato no es uint64
+		// Si el tipo de dato no es entero devolverá un error.
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al procesar la consulta."})
 		return
 	}
-	// Refactorizar
 
 	// Obtenemos los datos de la respuesta del usuario recibido.
 	var jsonData map[string]any
@@ -46,7 +45,7 @@ func POST_Consult(ctx *gin.Context) {
 		return
 	}
 
-	// Obtener un atributo específico
+	// Formulamos lo recibido del JSON a variables.
 	consult := jsonData["Consulta"].(string)
 
 	nrConsult := jsonData["ConsultUID"].(string)
@@ -55,12 +54,14 @@ func POST_Consult(ctx *gin.Context) {
 	modelo_tx := jsonData["Modelo"].(string)
 	modelo, _ := strconv.ParseUint(modelo_tx, 10, 64)
 
+	// Consulta del usuario.
 	consult = fmt.Sprintf("\"%s\" (Consulta del Usuario: %s)", consult, usr_username)
 
+	// Declaramos una estructura que contiene la respuesta de Gemini.
 	var response *genai.GenerateContentResponse
 	var err3 error
 
-	response, err3 = apis.ConsultGemini(os.Getenv("GEMINI_API_KEY"), consult, usr_ID, nrConsultInt, modelo)
+	response, err3 = apis.ConsultGemini(os.Getenv("GEMINI_API_KEY"), consult, usr_ID, nrConsultInt, modelo, 1)
 
 	if err3 != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Modelo de Inteligencia Artificial no Encontrado."})
@@ -78,6 +79,8 @@ func POST_Consult(ctx *gin.Context) {
 		return
 	}
 
+	// Lo siguiente fue para mostrar visualmente agradable en consola la
+	// respuesta, será eliminado posteriormente.
 	var test string = strings.ReplaceAll(response.Text(), "\n", " ")
 
 	ctx.JSON(http.StatusOK, gin.H{"Request": test})
@@ -105,7 +108,7 @@ func POST_Consult_NoAuth(ctx *gin.Context) {
 	var response *genai.GenerateContentResponse
 	var err2 error
 
-	response, err2 = apis.ConsultGemini(os.Getenv("GEMINI_API_KEY"), consult, 0, nrConsultInt, modelo)
+	response, err2 = apis.ConsultGemini(os.Getenv("GEMINI_API_KEY"), consult, 0, nrConsultInt, modelo, 2)
 
 	if err2 != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Modelo de Inteligencia Artificial no Encontrado."})

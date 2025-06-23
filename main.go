@@ -1,3 +1,4 @@
+// Paquete
 package main
 
 import (
@@ -16,18 +17,24 @@ func init_background() {
 }
 
 func main() {
+	// Llamada a la función para iniciar el .env y la base de datos.
 	init_background()
 
+	//Inicializamos el framework Gin para gestionar el servidor HTTP
 	var gin_Router *gin.Engine = gin.Default()
-	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://google.com"}
-	gin_Router.Use(cors.New(config))
 
+	//Especificamos el Cors, que por ahora admitirá cualquier conexión
+	gin_Router.Use(cors.Default())
+
+	//Especificamos las rutas que se usarán en el servidor.
+	// Contiene las rutas para la consulta de Gemini, Middlew y usuario
 	routes.Route_Gemini(gin_Router)
 	routes.Route_Middleware(gin_Router)
 	routes.User_Routes(gin_Router)
 
-	gin_Router.Run("0.0.0.0:8081")
+	// Le especificamos que corra el servidor y este atento
+	// a escuchar a cualquier dirección en el puerto 8081.
+	gin_Router.Run(":8081")
 }
 
 /*
@@ -35,14 +42,9 @@ func main() {
 	* 1. Login-Registro y Autenticar (Creación y Registro de Usuarios).
 	[LISTO]
 	* 2. Protección de rutas para evitar el acceso a información sensible.
-	[En Progreso]
-	* 3. Arreglar la request o respuesta del json para evitar los "\n"
-	en las respuestas. [En Progreso]
-	* 4. Modelar En Base A lo Que se Quiere del Proyecto
-	* 5. Posiblemente al escalar, organizar aún mejor. Apegandose mas al
-	proyecto, la estructura de los directorios del proyecto.
-	* 6. Ligado al punto 5, seguramente halla una reestructuración del código del proyecto para adaptarse a dicho requerimiento.
-	* 7. Tratar y asegurarse de que cada usuario tenga su propio chat con la
-	IA de Gemini y sigan sus conversaciones para cada uno, sin que se mezcle el contexto de la conversación de un usuario con el de otro.
-	* 8. Con lo anterior también evitar que se sobrepase del limite de consultas por minuto, que de acuerdo al plan que estable Google con su IA Gemini, es de 15.
+	[LISTO]
+	* 4. Modelar En Base A lo Que se Quiere del Proyecto [LISTO]
+	* 5. IA de Gemini y sigan sus conversaciones para cada uno, sin que se mezcle el contexto de la conversación de un usuario con el de otro. [LISTO]
+	* 8. Con lo anterior también evitar que se sobrepase del limite de consultas por minuto, que de acuerdo al plan que estable Google con su IA Gemini, es de 15.[EN PROGRESO]
+	*9. Endpoint para devolver los historiales de conversación del usuario y toda la conversación específica selecionada. [LISTO]
 */

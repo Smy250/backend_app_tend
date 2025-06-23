@@ -6,6 +6,13 @@ import (
 	"gorm.io/gorm"
 )
 
+// Estructura del modelo usuario
+// Lo que ves al lado del tipo de dato en vuelto en 'gorm...' es la forma
+// de especificar que por ejemplo este dato puede ser representado
+// tanto en json, como un atributo clave en el orm de gorm y ser
+// mapeado en este como una tabla. En el caso de ID en gorm es
+// especifica que es una primary key y como json sera
+// identificado como el campo ID
 type User struct {
 	ID        uint64         `gorm:"primaryKey" json:"ID"` // Identificador del User
 	Email     string         `gorm:"unique" json:"EMail"`  // Correo
@@ -20,6 +27,7 @@ type User struct {
 	// Una consulta AI esta ligada a un usuario 1:1 ---> (1:M)
 }
 
+// Estructura del modelo Consultas_AI, tanto JSON, como tabla en GORM
 type Consultas_AI struct {
 	ID         uint64 `gorm:"primaryKey"`
 	User_ID    uint64 `json:"User_ID" gorm:"not null"`
@@ -38,3 +46,10 @@ type Consultas_AI struct {
 // Tiempo en que fue creado el registro
 // Tiempo en que fue elminado el registro
 // Eliminado o no (de forma logica)
+
+// Estructura ConsultaRespuesta. Solo contendrá la información de la
+// consulta del usuario y respuesta Gemini.
+type ConsultaRespuesta struct {
+	Consulta  string `json:"Consulta"`
+	Respuesta string `json:"Respuesta"`
+}
