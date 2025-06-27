@@ -12,7 +12,5 @@ func Route_Gemini(router_Group *gin.Engine) {
 	router_Group.Group("/")
 	{
 		router_Group.POST("/consult/gemini", middleware.UserAuthentication, controllers.POST_Consult)
-
-		router_Group.POST("/consult/gemini_noauth/", controllers.POST_Consult_NoAuth)
 	}
 }

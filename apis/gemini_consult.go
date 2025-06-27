@@ -20,9 +20,9 @@ func ConsultGemini(gemini_key string, consult string,
 	// Por los momentos se harán pruebas con los siguientes tres modelos
 	// que ofrece la IA Gemini de Google
 	var ai_Models = []string{
-		"gemini-2.0-flash-lite-001",
+		"gemini-2.5-flash",
 		"gemini-2.0-flash",
-		"gemini-2.5-flash-preview-04-17",
+		"gemini-2.5-flash-lite-preview-06-17",
 	}
 
 	// Declararemos un contexto con el fin, para que tome el tiempo
@@ -116,7 +116,7 @@ func precisionModel(precisionlvl uint64) *genai.GenerateContentConfig {
 			TopK:            &topK,
 			MaxOutputTokens: maxOutputTokens,
 		}
-	// Ejemplos
+	// Guía/Ejemplos
 	case 3:
 		temp = 0.1
 		topK = 0.01
@@ -125,7 +125,7 @@ func precisionModel(precisionlvl uint64) *genai.GenerateContentConfig {
 			TopP:            &topP,
 			MaxOutputTokens: maxOutputTokens,
 		}
-	// General
+	// Balanceado
 	case 4:
 		temp = 0.7
 		topP = 0.95

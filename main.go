@@ -24,7 +24,13 @@ func main() {
 	var gin_Router *gin.Engine = gin.Default()
 
 	//Especificamos el Cors, que por ahora admitirá cualquier conexión
-	gin_Router.Use(cors.Default())
+	gin_Router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, // tu frontend
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	//Especificamos las rutas que se usarán en el servidor.
 	// Contiene las rutas para la consulta de Gemini, Middlew y usuario

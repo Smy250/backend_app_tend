@@ -101,8 +101,22 @@ func LoginUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.SetSameSite(http.SameSiteLaxMode)
-	ctx.SetCookie("Authorization", tokenString, 3600*24*30, "", "", false, true)
+	ctx.SetSameSite(http.SameSiteNoneMode)
+
+	/* cookie := &http.Cookie{
+		Name:     "Authorization",
+		Value:    tokenString,
+		Path:     "/",
+		Domain:   "localhost", // opcional, en local puede omitirse
+		Secure:   false,       // requiere HTTPS para que funcione
+		HttpOnly: true,
+		SameSite: http.SameSiteNoneMode, // ← esto permite cross-site con withCredentials
+		Expires:  time.Now().Add(24 * time.Hour),
+	} */
+
+	ctx.SetCookie("Authorization", tokenString, 3600*24*30, "/", "", true, true)
+
+	//http.SetCookie(ctx.Writer, cookie)
 
 	ctx.JSON(http.StatusAccepted, gin.H{"Logueado": "Ha iniciado sesión correctamente."})
 
