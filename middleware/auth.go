@@ -41,8 +41,9 @@ func UserAuthentication(ctx *gin.Context) {
 			ctx.Abort()
 			return
 		}
+
 		var usr = models.User{}
-		db_conn, err_3 := config.DB_Instance()
+		db, err_3 := config.DB_Instance()
 		if err_3 != nil {
 			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"Error en la base de datos": err_3.Error()})
 			ctx.Abort()
@@ -50,13 +51,10 @@ func UserAuthentication(ctx *gin.Context) {
 		}
 
 		// Encontramos el id del usuario con el atributo "usr" del token.
-		// Con el metodo withcontext, nos aseguramos concurrentemente
-		// la operacion de la consulta.
-		db_conn.WithContext(context.Background()).First(&usr, claims["usr"])
+		db.First(&usr, claims["usr"])
 
 		if usr.ID == 0 {
-			ctx.AbortWithStatus(http.StatusInternalServerError)
-			ctx.Abort()
+			ctx.AbortWithStatus(http.StatusNotFound)
 			return
 		}
 
@@ -100,8 +98,8 @@ func UserVerifyLogging(ctx *gin.Context) {
 
 			// si usr es distinto a nulo, devolvemos el mensaje de
 			// que no hay necesidad de hacerlo nuevamente
-			if usr != nil {
-				ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"Error en el login.": "Usted ya se encuentra logueado."})
+			if usr.Login == 1 {
+				ctx.AbortWithStatus(http.StatusConflict)
 				return
 			}
 		}
@@ -115,6 +113,29 @@ func UserVerifyLogout(ctx *gin.Context) {
 	tokenString, _ := ctx.Cookie("Authorization")
 
 	if tokenString != "" {
+		token, err := scripts.DecryptToken(tokenString)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"Acceso no Autorizado": err.Error()})
+			ctx.Abort()
+			return
+		}
+
+		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			var usr = &models.User{}
+			db, err_2 := config.DB_Instance()
+			if err_2 != nil {
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"Error en la base de datos": err_2.Error()})
+				ctx.Abort()
+				return
+			}
+
+			// Encontramos el id del usuario con el atributo "usr" del token.
+			db.First(&usr, claims["usr"])
+
+			db.Model(&models.User{}).
+				Where("id = ?", usr.ID).
+				Update("login", 0)
+		}
 		ctx.Next()
 	} else {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"Error": "Usted no tiene sesión activa."})

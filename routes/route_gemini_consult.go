@@ -11,6 +11,10 @@ import (
 func Route_Gemini(router_Group *gin.Engine) {
 	router_Group.Group("/")
 	{
+		// Ruta para la consulta de IA Gemini 2.5
 		router_Group.POST("/consult/gemini", middleware.UserAuthentication, controllers.POST_Consult)
+
+		// Ruta para el del analisis archivo .pdf
+		router_Group.POST("/consult/summarize_pdf", middleware.UserAuthentication, controllers.POST_SummarizePDF)
 	}
 }

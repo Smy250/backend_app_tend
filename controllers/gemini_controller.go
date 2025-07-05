@@ -1,9 +1,9 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 
 	"github.com/Smy250/backend_app_tend/apis"
 	"github.com/Smy250/backend_app_tend/config"
@@ -36,53 +36,58 @@ func POST_Consult(ctx *gin.Context) {
 		return
 	}
 
-	// Obtenemos los datos de la respuesta del usuario recibido.
-	var jsonData map[string]any
-	if err2 := ctx.BindJSON(&jsonData); err2 != nil {
+	var consult = models.ConsultaGemini{}
+	if err2 := ctx.ShouldBindJSON(&consult); err2 != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err2.Error()})
 		return
 	}
 
+	// Obtenemos los datos de la respuesta del usuario recibido.
+	/* var jsonData map[string]any
+	if err2 := ctx.BindJSON(&jsonData); err2 != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err2.Error()})
+		return
+	} */
+
 	// Formulamos lo recibido del JSON a variables.
 
 	// Consulta del usuario.
-	consult := jsonData["Consulta"].(string)
+	//consult := jsonData["Consulta"].(string)
 
 	// ID de la consulta del usuario.
-	nrConsult := jsonData["ConsultUID"].(string)
-	nrConsultInt, _ := strconv.ParseUint(nrConsult, 10, 64)
-
-	// Modelo
-	modelo_tx := jsonData["Modelo"].(string)
-	modelo, _ := strconv.ParseUint(modelo_tx, 10, 64)
+	// nrConsult := jsonData["ConsultUID"].(string)
+	// nrConsultInt, _ := strconv.ParseUint(nrConsult, 10, 64)
 
 	// Precision o tipo de respuesta deseada.
-	precision_tx := jsonData["Precision"].(string)
-	precision, _ := strconv.ParseUint(precision_tx, 10, 64)
+	//precision_tx := jsonData["Precision"].(string)
+	//precision, _ := strconv.ParseUint(precision_tx, 10, 64)
 
-	prompt := scripts.PromptPrecision(precision, consult)
-
-	//consult = fmt.Sprintf("\"%s\" (Consulta del Usuario: %s)", consult, usr_username)
+	prompt := scripts.PromptPrecision(consult.Precision, consult.Consulta)
 
 	// Declaramos una estructura que contiene la respuesta de Gemini.
 	var response *genai.GenerateContentResponse
 	var err3 error
 
-	response, err3 = apis.ConsultGemini(os.Getenv("GEMINI_API_KEY"), prompt, usr_ID, nrConsultInt, modelo, precision)
+	response, err3 = apis.ConsultGemini(os.Getenv("GEMINI_API_KEY"), prompt, usr_ID, consult.ConsultUID, consult.Precision)
+
+	if response == nil ||
+		len(response.Candidates) == 0 ||
+		response.Candidates[0].Content == nil ||
+		len(response.Candidates[0].Content.Parts) == 0 {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "La IA no generó respuesta. Intenta con otra precisión o revisa tu consulta."})
+		return
+	}
 
 	if err3 != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Modelo de Inteligencia Artificial no Encontrado."})
 		return
 	}
 
-	//fmt.Printf("%v - %v - %v", usr_ID, nrConsultInt, consult)
-
 	// Con respecto al dato usrID al ser de tipo any o cualquiera(generico)
 	// Con la aserción podemos transformar un dato any a cualquiera
 	// con .(tipo de dato)
-	if err4 := db.Create(&models.Consultas_AI{User_ID: usr_ID, ConsultUID: nrConsultInt, Consult: consult, Request: response.Text()}).Error; err4 != nil {
+	if err4 := db.Create(&models.Consultas_AI{User_ID: usr_ID, ConsultUID: consult.ConsultUID, Consult: consult.Consulta, Request: response.Text()}).Error; err4 != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al procesar la consulta"})
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err4.Error()})
 		return
 	}
 
@@ -91,4 +96,43 @@ func POST_Consult(ctx *gin.Context) {
 	//var test string = strings.ReplaceAll(response.Text(), "\n", " ")
 
 	ctx.JSON(http.StatusOK, gin.H{"Request": response.Text()})
+}
+
+// POST_SummarizePDF es el controlador que maneja la solicitud de resumen de PDF.
+func POST_SummarizePDF(ctx *gin.Context) {
+
+	var req models.SummarizePDFRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Formato de JSON inválido o campos faltantes: %v", err)})
+		return
+	}
+
+	consulta := scripts.PromptPrecision(req.Precision, req.Consulta)
+
+	// Llama a la nueva función del paquete apis para el resumen
+	summary, err := apis.SummarizePDFAPI(os.Getenv("GEMINI_API_KEY"), req.FilePath, consulta, req.Precision)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Error al procesar el resumen del PDF: %v", err.Error())})
+		return
+	}
+
+	db, err2 := config.DB_Instance()
+	if err2 != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": err2.Error()})
+		return
+	}
+
+	var usr_ID uint64 = scripts.FindUserID(ctx, db)
+	if usr_ID == 0 {
+		// Si el tipo de dato no es entero devolverá un error.
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al procesar la consulta."})
+		return
+	}
+
+	if err3 := db.Create(&models.Consultas_AI{User_ID: usr_ID, ConsultUID: req.ConsultUID, Consult: req.Consulta, Request: summary}).Error; err3 != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al procesar la consulta"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"Request": summary})
 }

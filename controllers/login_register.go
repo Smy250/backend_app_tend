@@ -77,6 +77,10 @@ func LoginUser(ctx *gin.Context) {
 		return
 	}
 
+	db.Model(&models.User{}).
+		Where("id = ?", userAux.ID).
+		Update("login", 1)
+
 	// Empleando la desencriptacion de tipo Bcrypt, verificamos si
 	// coinciden o no las contraseñas enviada desde el formulario con
 	// respecto a la almacenada en la base de datos.

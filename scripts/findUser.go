@@ -96,3 +96,24 @@ func FindConversationHistoryID(ctx *gin.Context, db *gorm.DB) []models.ConsultaR
 
 	return consult_values
 }
+
+func GetNextConversationID(ctx *gin.Context, db *gorm.DB) uint64 {
+	var usr_ID uint64 = 0
+	var conversationID uint64 = 0
+
+	if userID, ok := ctx.Get("user"); ok {
+		if idUint, ok := userID.(uint64); ok {
+			usr_ID = idUint
+		}
+	}
+
+	err := db.Model(models.Consultas_AI{}).
+		Select("consult_uid AS conversationID").
+		Where("user_id = ?", usr_ID).Last(&conversationID).Error
+
+	if err != nil {
+		return uint64(0)
+	}
+
+	return conversationID
+}

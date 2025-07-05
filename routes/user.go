@@ -16,5 +16,6 @@ func User_Routes(router_Group *gin.Engine) {
 		router_Group.GET("user/logout", middleware.UserVerifyLogout, controllers.LogoutUser)
 		router_Group.GET("user/number_conversations", middleware.UserAuthentication, controllers.GetUserHistory)
 		router_Group.GET("user/conversation/:consult_uid", middleware.UserAuthentication, controllers.GetUserHistoryID)
+		router_Group.GET("user/new_conversation", middleware.UserAuthentication, controllers.NewConversationUser)
 	}
 }

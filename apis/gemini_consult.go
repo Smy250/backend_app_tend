@@ -3,27 +3,21 @@ package apis
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
 
 	"github.com/Smy250/backend_app_tend/config"
 	"github.com/Smy250/backend_app_tend/models"
 	"google.golang.org/genai"
 )
 
-func ConsultGemini(gemini_key string, consult string,
-	user_id uint64, nConsult uint64, model uint64, precision uint64) (*genai.GenerateContentResponse, error) {
+const GeminiModel = "gemini-2.5-flash"
 
-	// Solo existen tres modelos.
-	if model > 3 {
-		return nil, errors.New("error en el modelo: Solo puede elegir tres modelos, [3 - Avanzado, 2 - Intermedio, 1 - Basico]")
-	}
+func ConsultGemini(gemini_key string, consult string,
+	user_id uint64, nConsult uint64, precision uint64) (*genai.GenerateContentResponse, error) {
 
 	// Por los momentos se harán pruebas con los siguientes tres modelos
 	// que ofrece la IA Gemini de Google
-	var ai_Models = []string{
-		"gemini-2.5-flash",
-		"gemini-2.0-flash",
-		"gemini-2.5-flash-lite-preview-06-17",
-	}
 
 	// Declararemos un contexto con el fin, para que tome el tiempo
 	// necesario, en procesar la información recibida de la API de Gemini.
@@ -44,33 +38,34 @@ func ConsultGemini(gemini_key string, consult string,
 	// Obtenemos la configuración de la precision de acuerdo a un numero
 	// especificado por el usuario.
 	precisionM := precisionModel(precision)
+	if precisionM == nil {
+		return nil, errors.New("configuración de precisión inválida")
+	}
 
-	// Creamos el chat con el modelo y precisión previamente obtenidos.
-	chat, err_2 := client.Chats.Create(context.Background(), ai_Models[model], precisionM, nil)
+	history, err_2 := getRecentMessage(user_id, nConsult, 2)
 	if err_2 != nil {
 		return nil, err_2
 	}
 
-	// Obtenemos de la bd al menos por ahora 2 mensajes previos para
-	// el contexto de la conversación.
-	history, err_3 := getRecentMessage(user_id, int(nConsult), 2)
+	// Creamos el chat con el modelo y precisión previamente obtenidos.
+	chat, err_3 := client.Chats.Create(context.Background(), GeminiModel, precisionM, history)
 	if err_3 != nil {
 		return nil, err_3
 	}
 
-	// Anexamos al array history la consulta
-	history = append(history, genai.Part{Text: consult})
+	// Obtenemos de la bd al menos por ahora 2 mensajes previos para
+	// el contexto de la conversación.
 
 	// Se envia la información previa.
-	resp, _ := chat.SendMessage(context.Background(), history...)
+	resp, _ := chat.SendMessage(context.Background(), genai.Part{Text: consult})
 
 	return resp, nil
 }
 
-func getRecentMessage(user uint64, nConsult, limit int) ([]genai.Part, error) {
-	db, err := config.DB_Instance()
-	if err != nil {
-		return []genai.Part{}, errors.New("db error: no se pudo conectar correctamente con la base de de datos")
+func getRecentMessage(user uint64, nConsult uint64, limit int) ([]*genai.Content, error) {
+	db, err4 := config.DB_Instance()
+	if err4 != nil {
+		return []*genai.Content{}, errors.New("db error: no se pudo conectar correctamente con la base de de datos")
 	}
 
 	var usr []models.Consultas_AI
@@ -82,79 +77,136 @@ func getRecentMessage(user uint64, nConsult, limit int) ([]genai.Part, error) {
 		Where("user_id = ? AND consult_uid = ?", user, nConsult).
 		Order("rowid DESC").Limit(limit).Find(&usr)
 
-	history := []genai.Part{}
+	history := []*genai.Content{}
 
 	for _, elem := range usr {
-		history = append([]genai.Part{{Text: elem.Consult}}, history...)
-		history = append([]genai.Part{{Text: elem.Request}}, history...)
+		history = append([]*genai.Content{
+			genai.NewContentFromText(elem.Consult, genai.RoleUser),
+			genai.NewContentFromText(elem.Request, genai.RoleModel),
+		}, history...)
 	}
+
+	//fmt.Println(history)
 
 	return history, nil
 }
 
 func precisionModel(precisionlvl uint64) *genai.GenerateContentConfig {
+
 	var contentConfig *genai.GenerateContentConfig
-	var temp, topP, topK float32
+	var (
+		temp, topP, topK float32
+	)
+
 	maxOutputTokens := int32(65536)
 
 	switch precisionlvl {
-	// Explicativo
+	// Explicativo/Ejemplos
 	case 1:
-		temp = 0.79
-		topP = 0.95
-		contentConfig = &genai.GenerateContentConfig{
-			Temperature:     &temp,
-			TopP:            &topP,
-			MaxOutputTokens: maxOutputTokens,
-		}
+		temp = 0.65
+		topP = 0.78
+		topK = 0
 	// Investigativo
 	case 2:
-		temp = 0.01
-		topK = 0.01
-		contentConfig = &genai.GenerateContentConfig{
-			Temperature:     &temp,
-			TopK:            &topK,
-			MaxOutputTokens: maxOutputTokens,
-		}
-	// Guía/Ejemplos
-	case 3:
-		temp = 0.1
-		topK = 0.01
-		contentConfig = &genai.GenerateContentConfig{
-			Temperature:     &temp,
-			TopP:            &topP,
-			MaxOutputTokens: maxOutputTokens,
-		}
-	// Balanceado
-	case 4:
-		temp = 0.7
+		temp = 0.3
+		topP = 0
+		topK = 20
+	// Guía/Ejemplos/General
+	default:
+		temp = 0.79
 		topP = 0.95
-		contentConfig = &genai.GenerateContentConfig{
-			Temperature:     &temp,
-			TopP:            &topP,
-			MaxOutputTokens: maxOutputTokens,
-		}
+		topK = 0
+	}
+
+	contentConfig = &genai.GenerateContentConfig{
+		Temperature:     &temp,
+		TopP:            &topP,
+		TopK:            &topK,
+		MaxOutputTokens: maxOutputTokens,
 	}
 
 	return contentConfig
 }
 
-/*
-func temperatureParameter(temp float32, topP float32, topK float32, maxOutputTokens int32) *genai.GenerateContentConfig {
+// Función para manejar la solicitud de resumen de PDF
+func SummarizePDFAPI(gemini_key string, filePath string, prompt string, precision uint64) (string, error) {
+	client, err1 := genai.NewClient(context.Background(), &genai.ClientConfig{
+		APIKey:  gemini_key,
+		Backend: genai.BackendGeminiAPI,
+	})
+	if err1 != nil {
+		return "nil", err1
+	}
 
-	//Parametro por defecto si todos los parametros estan en cero.
-	if temp == 0 || topP == 0 || topK == 0 || maxOutputTokens == 0 {
-		temp = 0.9
-		topP = 0.5
-		topK = 20.0
-		maxOutputTokens = 100
+	//Leer el archivo pdf
+	pdfBytes, err_file := os.ReadFile(filePath)
+	if err_file != nil {
+		return "", fmt.Errorf("error al leer el archivo PDF en '%s': %w", filePath, err_file)
 	}
-	// Devolvemos un struct de tipo genai.GenerateContentConfig:
-	return &genai.GenerateContentConfig{
-		Temperature:      &temp,
-		TopP:             &topP,
-		TopK:             &topK,
-		MaxOutputTokens:  maxOutputTokens,
-		ResponseMIMEType: "application/json",
+
+	if prompt == "" {
+		prompt = "Summarize this document in detail. Provide key points and main ideas." // Prompt por defecto si no se proporciona uno.
 	}
-}*/
+
+	/*Slice de punteros
+	parts := []*genai.Part{
+		&genai.Part{
+			InlineData: &genai.Blob{
+				MIMEType: "application/pdf",
+				Data:     pdfBytes,
+			},
+		},
+		genai.NewPartFromText(promptText),
+	}*/
+
+	// Usando la sintaxis de la documentación (slice de punteros)
+
+	parts := []*genai.Part{
+		{
+			InlineData: &genai.Blob{
+				MIMEType: "application/pdf",
+				Data:     pdfBytes,
+			},
+		},
+		genai.NewPartFromText(prompt),
+	}
+
+	contents := []*genai.Content{
+		genai.NewContentFromParts(parts, genai.RoleUser),
+	}
+
+	precisionM := precisionModel(precision)
+	if precisionM == nil {
+		return "", errors.New("configuración de precisión inválida")
+	}
+
+	// Creamos el chat con el modelo y precisión previamente obtenidos.
+	chat, err_3 := client.Chats.Create(context.Background(), GeminiModel, precisionM, nil)
+	if err_3 != nil {
+		return "", err_3
+	}
+
+	//Llamada al modelo de Gemini para generar el resumen
+	resp, err_genai := chat.Models.GenerateContent(
+		context.Background(),
+		GeminiModel,
+		contents,
+		nil,
+	)
+	if err_genai != nil {
+		return "", fmt.Errorf("error de la API de Gemini al generar contenido: %w", err_genai)
+	}
+
+	// Extraer y enviar la respuesta de la IA
+	var summary string
+	if resp != nil && len(resp.Candidates) > 0 && resp.Candidates[0].Content != nil {
+		for _, part := range resp.Candidates[0].Content.Parts {
+			//summary += fmt.Sprintf("%v", part)
+			summary += part.Text //Acceso directo al campo .text de la estructura
+		}
+	} else {
+		return "", errors.New("la IA no proporcionó una respuesta válida o esperada")
+	}
+
+	return summary, nil
+}

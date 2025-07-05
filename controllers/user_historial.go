@@ -17,20 +17,14 @@ func GetUserHistory(ctx *gin.Context) {
 	}
 
 	var numberMessages []uint64 = scripts.FindConversationsNumbers(ctx, db)
-
 	if len(numberMessages) == 0 {
-		return
+		ctx.JSON(http.StatusOK, gin.H{"Conversaciones": make([]uint64, 0)})
 	} else {
 		ctx.JSON(http.StatusOK, gin.H{"Conversaciones": numberMessages})
 	}
 }
 
 func GetUserHistoryID(ctx *gin.Context) {
-	/* type historyMessages struct {
-		consult string
-		request string
-	} */
-	// messages := []historyMessages{}
 
 	db, err := config.DB_Instance()
 	if err != nil {
@@ -45,4 +39,19 @@ func GetUserHistoryID(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"Historial": usrMessages})
+}
+
+func NewConversationUser(ctx *gin.Context) {
+	db, err := config.DB_Instance()
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	var lastUserIDConversation = scripts.GetNextConversationID(ctx, db)
+	if lastUserIDConversation == 0 {
+		ctx.JSON(http.StatusOK, gin.H{"id": 1})
+	} else {
+		ctx.JSON(http.StatusOK, gin.H{"id": (lastUserIDConversation + 1)})
+	}
 }

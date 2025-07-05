@@ -2,6 +2,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/Smy250/backend_app_tend/config"
 	"github.com/Smy250/backend_app_tend/routes"
 	"github.com/gin-contrib/cors"
@@ -24,12 +26,14 @@ func main() {
 	var gin_Router *gin.Engine = gin.Default()
 
 	//Especificamos el Cors, que por ahora admitirá cualquier conexión
-	gin_Router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"}, // tu frontend
+	gin_Router.Use(cors.New(cors.Config{ // tu frontend
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
+		AllowOriginFunc: func(origin string) bool {
+			return strings.HasPrefix(origin, "http://") && strings.Contains(origin, ":5173")
+		},
 	}))
 
 	//Especificamos las rutas que se usarán en el servidor.
