@@ -1,18 +1,12 @@
 # backend_app_tend
 
-Programa Backend para la el proyecto de tendencias.
+Programa Backend para el proyecto de tendencias.
 
 ## Programas Necesarios
 
 ### 1: Compilador Golang
 
 <https://go.dev/dl/>
-
-### 2: Base de Datos SQLite
-
-Si posee Windows 10 y 11, y tienes instalado WinGet (<https://apps.microsoft.com/detail/9nblggh4nns1>) puedes tipear en la consola lo siguiente para proceder con la instalación: `winget install --id=SQLite.SQLite  -e`
-
-Otra forma es instalarlo directamente de su sitio oficial: `` luego procederemos a descomprimirlo y dependiendo del sistema, por ejemplo Windows. Procederemos a agregarlo a la ruta "path" de las variables de entorno del sistema.
 
 Como dato adicional es caso de obtener: "`failed to initialize database, got error Binary was compiled with 'CGO_ENABLED=0', go-sqlite3 requires cgo to work. This is a stub`". Será necesario instalar MSYS2 especificamente los compiladores de C/C++. Primeramente accediendo al siguiente enlace: "<https://www.msys2.org/>".
 
@@ -35,12 +29,14 @@ Una vez comprobado todo en orden en el menu de inicio buscar el programa "`MSYS2
 
 Pulsaremos Enter o Y, dependiendo el caso. Esperamos que finalice y finalmente estaremos listos para seguir con los pasos.
 
+En caso de que se nos queje por la falta de SQLite, se procedería a instalarlo directamente en la terminal MSYS2 con el siguiente comando: `pacman -S mingw-w64-x86_64-sqlite3` o también podrías instalarlo desde su sitio oficial: `https://www.sqlite.org/download.html` luego procederemos a descomprimirlo y dependiendo del sistema, por ejemplo Windows. Procederemos a agregarlo a la ruta "path" de las variables de entorno del sistema, si usaste pacman para instalarlo no es necesario especificar la ruta ya que estará en la misma ruta del compilador de C++.
+
 ## Pasos para Ejecutar el Backend
 
-### 1. Clonar repositorio de la Rama Dev
+### 1. Clonar repositorio de la Rama principal
 
 Para lograrlo debemos ingresar el comando:
-`git clone -b dev https://github.com/Smy250/backend_app_tend`
+`git clone https://github.com/Smy250/backend_app_tend`
 
 ### 2. Ubicarnos en el directorio raíz del proyecto
 
@@ -48,7 +44,7 @@ Una vez clonado nos ubicamos en el directorio "backend_app_tend". Abrimos el mai
 
 ### 3. Ejecución del programa
 
-Finalmente luego de descargar las dependencias, teniendo abierto el archivo main.go en su ide o editor de codigo de preferencia, tipear en la terminal el comando `go run .`
+Finalmente luego de descargar las dependencias, teniendo abierto el archivo main.go en su ide o editor de codigo de preferencia, tipear en la terminal el comando `go run .` o si prefieres tener el ejecutable `go build .`
 
 ## Extensiones para facilitar el manejo de Golang en Visual Studio Code
 

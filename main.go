@@ -19,6 +19,8 @@ func init_background() {
 }
 
 func main() {
+	gin.SetMode(gin.ReleaseMode)
+
 	// Llamada a la función para iniciar el .env y la base de datos.
 	init_background()
 
@@ -46,15 +48,3 @@ func main() {
 	// a escuchar a cualquier dirección en el puerto 8081.
 	gin_Router.Run(":8081")
 }
-
-/*
-	Cosas por Implementar:
-	* 1. Login-Registro y Autenticar (Creación y Registro de Usuarios).
-	[LISTO]
-	* 2. Protección de rutas para evitar el acceso a información sensible.
-	[LISTO]
-	* 4. Modelar En Base A lo Que se Quiere del Proyecto [LISTO]
-	* 5. IA de Gemini y sigan sus conversaciones para cada uno, sin que se mezcle el contexto de la conversación de un usuario con el de otro. [LISTO]
-	* 8. Con lo anterior también evitar que se sobrepase del limite de consultas por minuto, que de acuerdo al plan que estable Google con su IA Gemini, es de 15.[EN PROGRESO]
-	*9. Endpoint para devolver los historiales de conversación del usuario y toda la conversación específica selecionada. [LISTO]
-*/

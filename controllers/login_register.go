@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -48,7 +49,7 @@ func RegisterUser(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"El usuario se ha registrado correctamente:": userForm})
+	ctx.JSON(http.StatusOK, gin.H{"EXITO:": fmt.Sprintf("El usuario %s se ha registrado correctamente", userForm.Username)})
 
 }
 
@@ -66,14 +67,14 @@ func LoginUser(ctx *gin.Context) {
 	// Verificamos el correo enviado del JSON
 	ctx.BindJSON(&userForm)
 	if userForm.Email == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"Error": "Campos faltantes"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"ERROR": "Campos faltantes"})
 		return
 	}
 
 	// Verificacion #1: Verificamos en la BD si el correo Existe.
 	db.Where("email = ?", userForm.Email).First(&userAux)
 	if userAux.ID == 0 {
-		ctx.JSON(http.StatusNotFound, gin.H{"Error:": "El correo ingresado no se encuentra registrado."})
+		ctx.JSON(http.StatusNotFound, gin.H{"ERROR:": "El correo ingresado no se encuentra registrado."})
 		return
 	}
 
@@ -86,7 +87,7 @@ func LoginUser(ctx *gin.Context) {
 	// respecto a la almacenada en la base de datos.
 	err2 := bcrypt.CompareHashAndPassword([]byte(userAux.Password), []byte(userForm.Password))
 	if err2 != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"ERRORX:": err2.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"ERROR:": err2.Error()})
 		return
 	}
 
@@ -107,22 +108,10 @@ func LoginUser(ctx *gin.Context) {
 
 	ctx.SetSameSite(http.SameSiteNoneMode)
 
-	/* cookie := &http.Cookie{
-		Name:     "Authorization",
-		Value:    tokenString,
-		Path:     "/",
-		Domain:   "localhost", // opcional, en local puede omitirse
-		Secure:   false,       // requiere HTTPS para que funcione
-		HttpOnly: true,
-		SameSite: http.SameSiteNoneMode, // ← esto permite cross-site con withCredentials
-		Expires:  time.Now().Add(24 * time.Hour),
-	} */
+	//Cookie con vencimientdo de dos días, con secure y http activados.
+	ctx.SetCookie("Authorization", tokenString, 3600*24*2, "/", "", true, true)
 
-	ctx.SetCookie("Authorization", tokenString, 3600*24*30, "/", "", true, true)
-
-	//http.SetCookie(ctx.Writer, cookie)
-
-	ctx.JSON(http.StatusAccepted, gin.H{"Logueado": "Ha iniciado sesión correctamente."})
+	ctx.JSON(http.StatusAccepted, gin.H{"LOGIN": "Ha iniciado sesión correctamente."})
 
 }
 

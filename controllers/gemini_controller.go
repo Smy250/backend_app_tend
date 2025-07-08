@@ -16,13 +16,6 @@ import (
 
 func POST_Consult(ctx *gin.Context) {
 
-	//Obtenemos el id y username desde el middleware.
-	//var usr_username = ""
-
-	/*if username, ok := ctx.Get("username"); ok {
-		//usr_username = username.(string)
-	}*/
-
 	db, err := config.DB_Instance()
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -41,26 +34,6 @@ func POST_Consult(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err2.Error()})
 		return
 	}
-
-	// Obtenemos los datos de la respuesta del usuario recibido.
-	/* var jsonData map[string]any
-	if err2 := ctx.BindJSON(&jsonData); err2 != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err2.Error()})
-		return
-	} */
-
-	// Formulamos lo recibido del JSON a variables.
-
-	// Consulta del usuario.
-	//consult := jsonData["Consulta"].(string)
-
-	// ID de la consulta del usuario.
-	// nrConsult := jsonData["ConsultUID"].(string)
-	// nrConsultInt, _ := strconv.ParseUint(nrConsult, 10, 64)
-
-	// Precision o tipo de respuesta deseada.
-	//precision_tx := jsonData["Precision"].(string)
-	//precision, _ := strconv.ParseUint(precision_tx, 10, 64)
 
 	prompt := scripts.PromptPrecision(consult.Precision, consult.Consulta)
 
@@ -90,10 +63,6 @@ func POST_Consult(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Error al procesar la consulta"})
 		return
 	}
-
-	// Lo siguiente fue para mostrar visualmente agradable en consola la
-	// respuesta, será eliminado posteriormente.
-	//var test string = strings.ReplaceAll(response.Text(), "\n", " ")
 
 	ctx.JSON(http.StatusOK, gin.H{"Request": response.Text()})
 }
